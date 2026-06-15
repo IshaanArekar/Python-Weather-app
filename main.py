@@ -1,0 +1,158 @@
+import requests
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdit, QVBoxLayout
+from PyQt5.QtCore import Qt
+
+class WeatherApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.city_label = QLabel("Enter City Name")
+        self.city_input = QLineEdit(self)
+        self.get_weather_button = QPushButton("Get Weather", self)
+        self.temprature_label = QLabel(self)
+        self.emoji_label = QLabel(self)
+        self.description_label = QLabel(self)
+        self.initUI()
+    def initUI(self):
+        self.setWindowTitle = ("WeatherApp")
+        vbox= QVBoxLayout()
+        vbox.addWidget(self.city_label)
+        vbox.addWidget(self.city_input)
+        vbox.addWidget(self.get_weather_button)
+        vbox.addWidget(self.temprature_label)
+        vbox.addWidget(self.emoji_label)
+        vbox.addWidget(self.description_label)
+
+        self.setLayout(vbox)
+        self.city_label.setAlignment(Qt.AlignCenter)
+        self.city_input.setAlignment(Qt.AlignCenter)
+        self.temprature_label.setAlignment(Qt.AlignCenter)
+        self.emoji_label.setAlignment(Qt.AlignCenter)
+        self.description_label.setAlignment(Qt.AlignCenter)
+
+        self.city_label.setObjectName("city_label")
+        self.city_input.setObjectName("city_input")
+        self.get_weather_button.setObjectName("get_weather_button")
+        self.temprature_label.setObjectName("temprature_label")
+        self.emoji_label.setObjectName("emoji_label")
+        self.description_label.setObjectName("description_labe")
+      
+        self.setStyleSheet("""
+            QLabel,QPushButton{font-family: calibri;
+                           }
+            QLabel#city_label{
+                           font-size: 40px;
+                           font - style: italic;
+                           }
+            QLineEdit#city_input{
+                           font-size: 30px;
+                           }
+            QPushButton#get_weather_button{
+                           font-size : 30px;
+                           font-weight: bold;
+                           }
+            QLabel#temprature_label{
+                           font-size : 75px;
+                           }
+            QLabel#emoji_label{
+                           font-size: 100px;
+                           font-family: segoe UI emoji
+                           }
+            QLabel#description_label{
+                           font-size : 50px;
+                           }
+             """)
+        self.get_weather_button.clicked.connect(self.get_weather)
+        
+
+    def get_weather(self):
+        api_key = "541b579318a0b69f81a47df8b69d6d07"
+        city = self.city_input.text()
+        url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+
+        try:
+            response= requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+
+            if data["cod"] == 200:
+                self.display_weather(data)
+            
+        except requests.exceptions.HTTPError as http_error:
+            match response.status_code:
+                case 400 :
+                    self.display_error("Bad Request \nPlease Check your input")
+                case 401 :
+                    self.display_error("unauthorized access \nInvalid API Key")
+                case 403 :
+                    self.display_error("Forbidden\nAccess is denied")
+                case 404 :
+                    self.display_error("Not found \nCity does not exist")
+                case 500 :
+                    self.display_error("Internal server error \ntry again later")
+                case 502 :
+                    self.display_error("Bad Gateway \nInvalid")
+                case 503 :
+                    self.display_error("Service Unavailable\nSever is down")
+                case 504 :
+                    self.display_error("Gateway Timeout \nno response")
+                case _:
+                    self.display_error(f"HTTP error occured\n {http_error}")
+        
+        except requests.exceptions.ConnectionError:
+            self.display_error("Connection error\n check your internet connection")
+        except requests.exceptions.Timeout:
+            self.display_error("Request timeout \n Please try again later ")
+        except requests.exceptions.TooManyRedirects:
+            self.display_error("Too many redirects\n Please come back later")       
+        except requests.exceptions.RequestException as req_error:
+            self.display_error (f"Request Error:\n {req_error}")
+
+    def display_error(self, message):
+       self.temprature_label.setText(message)
+       self.temprature_label.setStyleSheet("font-size: 30px")
+       self.emoji_label.clear()
+       self.description_label.clear()
+
+    def display_weather(self, data):
+        self.temprature_label.setStyleSheet("font-size : 75px")
+        self.description_label.setStyleSheet("font-size: 50px")
+        temprature_k = data["main"]["temp"]
+        temprature_c = temprature_k - 273.15
+        temprature_f = (temprature_k * 9/5) - 459.67
+        weather_id = data["weather"][0]["id"]
+        self.temprature_label.setText(f"{temprature_f: .0f} ℉")
+        self.emoji_label.setText(self.get_weather_emoji(weather_id))
+        weather_description = data["weather"][0]["description"]
+        self.description_label.setText(weather_description)
+    
+    @staticmethod
+    def get_weather_emoji(weather_id):
+        if weather_id >= 200 and weather_id <=232:
+            return "⛈️"
+        elif weather_id >= 300 and weather_id <=321:
+            return "🌥️"
+        elif weather_id >= 500 and weather_id <= 531:
+            return "🌧️"
+        elif weather_id >= 600 and weather_id <= 622:
+            return "🌨️"
+        elif weather_id >= 701 and weather_id <= 741:
+            return "🌫️"
+        elif weather_id ==762 :
+            return "🌋"
+        elif weather_id == 771:
+            return "💨"
+        elif weather_id == 781:
+            return "🌪️"
+        elif weather_id == 800:
+            return "☀️"
+        elif weather_id >= 801 and weather_id <= 804:
+            return "☁️"
+        else:
+            return " "
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    weather_app =  WeatherApp()
+    weather_app.show()
+    sys.exit(app.exec())
