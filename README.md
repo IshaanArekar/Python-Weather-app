@@ -52,7 +52,7 @@ python3 main.py
 
 Type a city name into the input box and click **Get Weather**.
 
-**How It Works: **
+**How It Works:**
 
 The app sends a request to the OpenWeatherMap current weather endpoint:
 
